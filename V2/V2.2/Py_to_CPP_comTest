@@ -1,0 +1,48 @@
+# Author: Carson Baker
+# Last Modified: 4/1/2025
+# Description: While connected to Arduino
+
+import serial
+import time
+
+# Open serial communication with Arduino on COM5
+try:
+    arduino = serial.Serial('COM5', 9600, timeout=2)
+    print("Serial connection established.")
+    time.sleep(2)  # Give time for Arduino to initialize
+except serial.SerialException as e:
+    print(f"Error: {e}")
+    exit()
+
+# Function to send a float to Arduino and get the result
+def send_floats_to_arduino(joint_angles):
+    try:
+        if not joint_angles:
+            print("Error: The list of joint angles is empty")
+            return
+        
+        # Convert the list of floats to a comma-seperated string
+        data_to_send = ",".join(map(str, joint_angles)) + "\n"
+        arduino.write(data_to_send.encode())
+        print(f"Sent to Arduino: {data_to_send.strip()}")
+
+        # Wait for the response from Arduino
+        response = arduino.readline().decode().strip()
+
+
+        if response:
+            print(f"Response from Arduino: {response}")
+        else:
+            print("No response received from Arduino.")
+    except Exception as e:
+        print(f"Error during communication: {e}")
+
+# Define the list of joint angles
+joint_angles = [90.0, 180.0] # sample angle list
+
+# Test: Send a float to Arduino
+send_floats_to_arduino(joint_angles)
+
+# Close the serial connection
+arduino.close()
+print("Serial connection closed.")
