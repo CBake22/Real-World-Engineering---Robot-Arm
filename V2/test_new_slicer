@@ -1,0 +1,46 @@
+import os
+from compas.datastructures import Mesh
+from compas.geometry import Point
+import compas.utilities as utils
+from compas_slicer.pre_processing import move_mesh_to_point
+from compas_slicer.slicers import PlanarSlicer
+from compas_slicer.post_processing import generate_brim, seams_smooth
+from compas_slicer.print_organization import PlanarPrintOrganizer, set_extruder_toggle
+from compas_slicer.utilities import save_to_json
+from compas_slicer.parameters import get_param
+
+BASE_DIR = os.path.dirname(__file__)
+DATA_DIR = os.path.join(BASE_DIR, "data")
+OUTPUT_DIR = os.path.join(DATA_DIR, "output")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+MODEL_FILE = "keychain.stl"
+
+def main():
+    compas_mesh = Mesh.from_stl(os.path.join(DATA_DIR, MODEL_FILE))
+    delta = get_param({}, key="delta", defaults_type="gcode")
+    print_volume_x = get_param({}, key="print_volume_x", defaults_type="gcode")
+    print_volume_y = get_param({}, key="print_volume_y", defaults_type="gcode")
+
+    if delta:
+        move_mesh_to_point(compas_mesh, Point(0, 0, 0))
+    else:
+        move_mesh_to_point(compas_mesh, Point(print_volume_x / 2, print_volume_y / 2, 0))
+
+    slicer = PlanarSlicer(compas_mesh, slicer_type="default", layer_height=4.5)
+    slicer.slice_model()
+    generate_brim(slicer, layer_width=3.0, number_of_brim_offsets=4)
+    seams_smooth(slicer, smooth_distance=10)
+    save_to_json(slicer.to_data(), OUTPUT_DIR, "slicer_data.json")
+
+    print_organizer = PlanarPrintOrganizer(slicer)
+    print_organizer.create_printpoints()
+    set_extruder_toggle(print_organizer, slicer)
+
+    gcode_text = print_organizer.output_gcode({})
+    gcode_path = os.path.join(OUTPUT_DIR, "my_gcode.gcode")
+
+    with open(gcode_path, "w") as f:
+        f.write(gcode_text)
+
+if __name__ == "__main__":
+    main()

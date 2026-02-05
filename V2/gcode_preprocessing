@@ -1,0 +1,43 @@
+def parse_gcode(filePath):
+    coordinatesList = []
+    currentPos = {'X': 0.0, 'Y': 0.0, 'Z': 0.0}
+
+    with open(filePath, 'r') as file:
+        for line in file:
+            line = line.strip()
+
+            # Skip commented lines or empty lines
+            if not line or line.startswith(';'):  
+                continue
+
+            # Check if line starts with G0 or G1
+            if line.startswith(('G0', 'G1')):
+                # Split line into parts ['G_', 'X___', 'Y___', 'Z___']
+                splittedLine = line.split()
+
+                # Iterate through the line and assign float values to dictionary
+                for part in splittedLine:
+                    if part[0] in ('X', 'Y', 'Z'):
+                        try:
+                            currentPos[part[0]] = float(part[1:])
+                        except ValueError:
+                            pass  
+
+                # Append a copy of the current position
+                coordinatesList.append([currentPos['X'], currentPos['Y'], currentPos['Z']])
+
+    return coordinatesList
+
+
+if __name__ == "__main__":
+    gcodeFilePath = "/Users/tylernguyen/Desktop/UF/Club/UF RWE/Real-World-Engineering---Robot-Arm/V2/data/output/sample.gcode"
+    outputFilePath = "/Users/tylernguyen/Desktop/UF/Club/UF RWE/Real-World-Engineering---Robot-Arm/V2/data/output/coordinates.txt"
+
+    coordinates = parse_gcode(gcodeFilePath)
+
+    # Write coordinates to a text file
+    with open(outputFilePath, 'w') as f:
+        for coord in coordinates:
+            f.write(f"{coord[0]}, {coord[1]}, {coord[2]}\n")
+
+    print(f"Coordinates written to {outputFilePath}")
